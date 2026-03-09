@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { NoteData } from '../types'
 import {
   NOTE_SIZE,
-  FRET_MARKER_WIDTH, FRET_MARKER_X,
+  FRET_MARKER_X,
   svgWidth, svgHeight, noteX, noteY, fretLineY, fretLineX1, fretLineX2,
 } from '../fretboardGeometry'
 import { FRET_MARKERS, DOUBLE_DOT_FRET } from '../constants'
