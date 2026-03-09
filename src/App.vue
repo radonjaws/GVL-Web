@@ -72,58 +72,63 @@ function degreeCircleStyle(degreeIndex: number) {
 <template>
   <div class="app-root">
 
-    <!-- ── Main column: string toggles + scrollable fretboard ── -->
-    <div class="fretboard-column">
+    <!-- ── Center wrapper: sized to fretboard content, centered on screen ── -->
+    <div class="center-wrapper">
 
-      <!-- String name toggles (above scroll, stays fixed) -->
-      <div
-        class="string-toggles"
-        :style="{ paddingLeft: togglePaddingLeft, gap: toggleGap }"
-      >
-        <button
-          v-for="si in state.strings"
-          :key="si - 1"
-          class="string-btn"
-          :class="{ hidden: hiddenStringsSet.has(si - 1) }"
-          :style="{ width: toggleSize, height: toggleSize }"
-          @click="toggleString(si - 1)"
+      <!-- Fretboard column -->
+      <div class="fretboard-column">
+
+        <!-- String name toggles -->
+        <div
+          class="string-toggles"
+          :style="{ paddingLeft: togglePaddingLeft, gap: toggleGap }"
         >
-          {{ noteNamesForKey[(tuning.openStrings[si - 1] ?? 0) % 12] }}
+          <button
+            v-for="si in state.strings"
+            :key="si - 1"
+            class="string-btn"
+            :class="{ hidden: hiddenStringsSet.has(si - 1) }"
+            :style="{ width: toggleSize, height: toggleSize }"
+            @click="toggleString(si - 1)"
+          >
+            {{ noteNamesForKey[(tuning.openStrings[si - 1] ?? 0) % 12] }}
+          </button>
+        </div>
+
+        <!-- Scrollable fretboard -->
+        <div class="fretboard-scroll">
+          <FretboardSVG
+            :noteMap="filteredNoteMap"
+            :hiddenStrings="hiddenStringsSet"
+            :hiddenDegrees="hiddenDegreesSet"
+            :stringCount="state.strings"
+            :fretCount="state.fretCount"
+          />
+        </div>
+      </div>
+
+      <!-- ── Right controls: menu + degree toggles, 50px right of fretboard ── -->
+      <div class="right-controls">
+        <button class="menu-btn" @click="menuOpen = !menuOpen" aria-label="Toggle settings">
+          <span>{{ menuOpen ? '✕' : '☰' }}</span>
         </button>
+        <div class="degree-sidebar">
+          <button
+            v-for="deg in 7"
+            :key="deg"
+            class="degree-btn"
+            :class="{ dimmed: hiddenDegreesSet.has(deg) }"
+            :style="degreeCircleStyle(deg - 1)"
+            @click="toggleDegree(deg)"
+          >
+            <span :class="{ 'label-hidden': hiddenDegreesSet.has(deg) }">
+              {{ scaleDegreeLabels[deg - 1] }}
+            </span>
+          </button>
+        </div>
       </div>
 
-      <!-- Scrollable fretboard -->
-      <div class="fretboard-scroll">
-        <FretboardSVG
-          :noteMap="filteredNoteMap"
-          :hiddenStrings="hiddenStringsSet"
-          :hiddenDegrees="hiddenDegreesSet"
-          :stringCount="state.strings"
-          :fretCount="state.fretCount"
-        />
-      </div>
     </div>
-
-    <!-- ── Right sidebar: degree toggles ── -->
-    <div class="degree-sidebar">
-      <button
-        v-for="deg in 7"
-        :key="deg"
-        class="degree-btn"
-        :class="{ dimmed: hiddenDegreesSet.has(deg) }"
-        :style="degreeCircleStyle(deg - 1)"
-        @click="toggleDegree(deg)"
-      >
-        <span :class="{ 'label-hidden': hiddenDegreesSet.has(deg) }">
-          {{ scaleDegreeLabels[deg - 1] }}
-        </span>
-      </button>
-    </div>
-
-    <!-- ── Hamburger button ── -->
-    <button class="menu-btn" @click="menuOpen = !menuOpen" aria-label="Toggle settings">
-      <span>{{ menuOpen ? '✕' : '☰' }}</span>
-    </button>
 
     <!-- ── Settings overlay ── -->
     <Transition name="settings">
@@ -139,7 +144,7 @@ function degreeCircleStyle(degreeIndex: number) {
 /* ── Root ─────────────────────────────────────────────────────────── */
 .app-root {
   display: flex;
-  flex-direction: row;
+  justify-content: center;
   height: 100svh;
   width: 100vw;
   background: #111;
@@ -149,12 +154,22 @@ function degreeCircleStyle(degreeIndex: number) {
   position: relative;
 }
 
+/* ── Center wrapper ───────────────────────────────────────────────── */
+/* Width is driven by fretboard SVG content; wrapper is centered. */
+/* Right controls hang off the right side via position:absolute.  */
+.center-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100svh;
+  flex-shrink: 0;
+}
+
 /* ── Fretboard column ─────────────────────────────────────────────── */
 .fretboard-column {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 0;
   overflow: hidden;
 }
 
@@ -190,15 +205,26 @@ function degreeCircleStyle(degreeIndex: number) {
   padding-bottom: 16px;
 }
 
+/* ── Right controls ───────────────────────────────────────────────── */
+/* Positioned 50px to the right of the fretboard column.            */
+.right-controls {
+  position: absolute;
+  left: calc(100% + 50px);
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
 /* ── Degree sidebar ───────────────────────────────────────────────── */
 .degree-sidebar {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 10px;
-  padding: 8px 6px;
-  flex-shrink: 0;
 }
 .degree-btn {
   display: flex;
@@ -221,10 +247,6 @@ function degreeCircleStyle(degreeIndex: number) {
 
 /* ── Hamburger ────────────────────────────────────────────────────── */
 .menu-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 20;
   background: rgba(0,0,0,0.55);
   border: none;
   color: #fff;
@@ -236,6 +258,7 @@ function degreeCircleStyle(degreeIndex: number) {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .menu-btn:hover { background: rgba(255,255,255,0.12); }
 

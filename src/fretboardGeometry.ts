@@ -4,7 +4,7 @@ export const NOTE_SIZE = 32
 export const H_SPACING = 12
 export const V_SPACING = 20
 export const H_PADDING = 10
-export const V_PADDING_TOP = 24
+export const V_PADDING_TOP = 30
 export const V_PADDING_BOTTOM = 20
 export const FRET_MARKER_WIDTH = 20   // left column for fret marker dots
 

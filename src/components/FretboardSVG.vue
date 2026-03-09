@@ -137,11 +137,11 @@ const DOT_GAP = 5
     :viewBox="`0 0 ${W} ${H}`"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <!-- Fretboard background -->
+    <!-- Fretboard background: spans exactly the fret line extents -->
     <rect
-      :x="FRET_MARKER_WIDTH"
+      :x="fretLineX1()"
       y="0"
-      :width="W - FRET_MARKER_WIDTH"
+      :width="fretLineX2(stringCount) - fretLineX1()"
       :height="H"
       rx="4"
       fill="rgba(255,255,255,0.06)"
