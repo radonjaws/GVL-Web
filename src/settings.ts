@@ -4,6 +4,7 @@ import {
   ALL_KEYS, FLAT_KEYS, FLAT_NOTE_NAMES, SHARP_NOTE_NAMES,
   SCALE_INTERVALS, TUNINGS, SCALE_DEGREE_LABELS,
 } from './constants'
+import { CYCLE_SEQUENCES, triadScaleDegrees } from './cycleData'
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
 
@@ -28,6 +29,13 @@ const state = reactive({
   fretCount:          load<number>('fretCount', 22),
   hiddenStrings:      load<number[]>('hiddenStrings', []),
   hiddenTriadDegrees: load<number[]>('hiddenTriadDegrees', []),
+  // Cycle mode
+  cycleMode:          load<boolean>('cycleMode', false),
+  cycleNumber:        load<number>('cycleNumber', 4),
+  cycleStep:          load<number>('cycleStep', 0),
+  cycleLookahead:     load<number>('cycleLookahead', 1),
+  autoPlay:           load<boolean>('autoPlay', false),
+  autoPlayBPM:        load<number>('autoPlayBPM', 60),
 })
 
 // Persist every change automatically
@@ -41,6 +49,12 @@ watch(
     save('fretCount', s.fretCount)
     save('hiddenStrings', s.hiddenStrings)
     save('hiddenTriadDegrees', s.hiddenTriadDegrees)
+    save('cycleMode', s.cycleMode)
+    save('cycleNumber', s.cycleNumber)
+    save('cycleStep', s.cycleStep)
+    save('cycleLookahead', s.cycleLookahead)
+    save('autoPlay', s.autoPlay)
+    save('autoPlayBPM', s.autoPlayBPM)
   },
   { deep: true }
 )
@@ -82,6 +96,40 @@ export function useSettings() {
     state.hiddenTriadDegrees = [...s]
   }
 
+  // ── Cycle mode ───────────────────────────────────────────────────────────────
+
+  /** Scale degrees (1–7) for the current chord in the active cycle step. */
+  const activeCycleScaleDegrees = computed<Set<number>>(() => {
+    if (!state.cycleMode) return new Set()
+    const seq = CYCLE_SEQUENCES[state.cycleNumber]!
+    const d = seq[state.cycleStep]!
+    return new Set(triadScaleDegrees(d))
+  })
+
+  /** Scale degrees for the next chord (ghost level 1, 25% opacity). */
+  const ghostCycleScaleDegrees1 = computed<Set<number>>(() => {
+    if (!state.cycleMode) return new Set()
+    const seq = CYCLE_SEQUENCES[state.cycleNumber]!
+    const d = seq[(state.cycleStep + 1) % 7]!
+    return new Set(triadScaleDegrees(d))
+  })
+
+  /** Scale degrees for the chord after next (ghost level 2, 12% opacity). */
+  const ghostCycleScaleDegrees2 = computed<Set<number>>(() => {
+    if (!state.cycleMode || state.cycleLookahead < 2) return new Set()
+    const seq = CYCLE_SEQUENCES[state.cycleNumber]!
+    const d = seq[(state.cycleStep + 2) % 7]!
+    return new Set(triadScaleDegrees(d))
+  })
+
+  function advanceCycleStep() {
+    state.cycleStep = (state.cycleStep + 1) % 7
+  }
+
+  function retreatCycleStep() {
+    state.cycleStep = (state.cycleStep + 6) % 7   // +6 mod 7 = −1
+  }
+
   return {
     state,
     keySignature,
@@ -94,5 +142,10 @@ export function useSettings() {
     toggleDegree,
     ALL_KEYS,
     TUNINGS,
+    activeCycleScaleDegrees,
+    ghostCycleScaleDegrees1,
+    ghostCycleScaleDegrees2,
+    advanceCycleStep,
+    retreatCycleStep,
   }
 }

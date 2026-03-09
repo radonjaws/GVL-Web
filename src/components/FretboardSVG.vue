@@ -14,6 +14,14 @@ const props = defineProps<{
   hiddenDegrees: Set<number>
   stringCount: number
   fretCount: number
+  // Cycle mode — when activeDegrees is non-empty, cycle rendering takes over
+  activeDegrees?: Set<number>   // current chord: full opacity
+  ghostDegrees1?: Set<number>   // next chord: 25% opacity
+  ghostDegrees2?: Set<number>   // chord +2: 12% opacity
+  // Chord degrees (1–7) for slice filtering: only the matching slice is shown
+  activeChordDegree?: number
+  ghostChordDegree1?: number
+  ghostChordDegree2?: number
 }>()
 
 // ── SVG dimensions ────────────────────────────────────────────────────────────
@@ -44,8 +52,8 @@ const stringLines = computed(() => {
   const lines = []
   const yTop = fretLineY(0)
   const yBot = fretLineY(props.fretCount)
+  // Always render all string lines — hidden strings only suppress notes, not the string itself
   for (let si = 0; si < props.stringCount; si++) {
-    if (props.hiddenStrings.has(si)) continue
     lines.push({ key: si, x: noteX(si), y1: yTop, y2: yBot })
   }
   return lines
@@ -69,9 +77,12 @@ const notes = computed(() => {
     cx: number
     cy: number
     r: number
+    opacity: number
     slices: Array<{ path: string; color: string }>
     labels: Array<{ x: number; y: number; text: string } | null>
   }> = []
+
+  const cycleModeOn = !!(props.activeDegrees?.size)
 
   for (let si = 0; si < props.stringCount; si++) {
     if (props.hiddenStrings.has(si)) continue
@@ -79,22 +90,46 @@ const notes = computed(() => {
       const note = props.noteMap.get(`${si}-${fret}`)
       if (!note) continue
 
+      // Cycle mode: filter by scale degree, set opacity, identify which chord's slice to show
+      let noteOpacity = 1
+      let showChordDegree: number | undefined
+
+      if (cycleModeOn) {
+        const sd = note.scaleDegree
+        if (props.activeDegrees!.has(sd)) {
+          noteOpacity = 1
+          showChordDegree = props.activeChordDegree
+        } else if (props.ghostDegrees1?.has(sd)) {
+          noteOpacity = 0.45
+          showChordDegree = props.ghostChordDegree1
+        } else if (props.ghostDegrees2?.has(sd)) {
+          noteOpacity = 0.25
+          showChordDegree = props.ghostChordDegree2
+        } else {
+          continue
+        }
+      }
+
       const cx = noteX(si)
       const cy = noteY(fret)
       const r = NOTE_SIZE / 2
 
-      const slices = note.triadColors.map((color, i) => ({
-        path: pieSlicePath(i, cx, cy, r),
-        color,
-      }))
+      // In cycle mode only the single slice whose triadDegree matches the displayed chord is shown
+      const slices = note.triadColors.map((color, i) => {
+        const effectiveColor = (showChordDegree !== undefined && note.triadDegrees[i] !== showChordDegree)
+          ? 'transparent'
+          : color
+        return { path: pieSlicePath(i, cx, cy, r), color: effectiveColor }
+      })
 
       const labels = note.triadLabels.map((label, i) => {
+        if (showChordDegree !== undefined && note.triadDegrees[i] !== showChordDegree) return null
         if (label === null) return null
         const pos = labelPosition(i, cx, cy, r)
         return { x: pos.x, y: pos.y, text: String(label) }
       })
 
-      result.push({ key: `${si}-${fret}`, cx, cy, r, slices, labels })
+      result.push({ key: `${si}-${fret}`, cx, cy, r, opacity: noteOpacity, slices, labels })
     }
   }
   return result
@@ -199,7 +234,7 @@ const DOT_GAP = 5
     </g>
 
     <!-- Note circles -->
-    <g v-for="n in notes" :key="n.key">
+    <g v-for="n in notes" :key="n.key" :opacity="n.opacity">
       <!-- Pie slices -->
       <path
         v-for="(slice, i) in n.slices"
