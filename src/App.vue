@@ -155,12 +155,11 @@ function degreeCircleStyle(degreeIndex: number) {
 }
 
 /* ── Center wrapper ───────────────────────────────────────────────── */
-/* Width is driven by fretboard SVG content; wrapper is centered. */
-/* Right controls hang off the right side via position:absolute.  */
+/* Flex row: fretboard + controls side-by-side, whole unit centered. */
 .center-wrapper {
-  position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
   height: 100svh;
   flex-shrink: 0;
 }
@@ -169,7 +168,7 @@ function degreeCircleStyle(degreeIndex: number) {
 .fretboard-column {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex-shrink: 0;
   overflow: hidden;
 }
 
@@ -206,17 +205,15 @@ function degreeCircleStyle(degreeIndex: number) {
 }
 
 /* ── Right controls ───────────────────────────────────────────────── */
-/* Positioned 50px to the right of the fretboard column.            */
+/* Inline flex item, 20px gap from fretboard. Whole row is centered. */
 .right-controls {
-  position: absolute;
-  left: calc(100% + 50px);
-  top: 0;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   gap: 16px;
+  margin-left: 20px;
 }
 
 /* ── Degree sidebar ───────────────────────────────────────────────── */
