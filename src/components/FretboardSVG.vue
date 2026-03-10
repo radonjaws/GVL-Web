@@ -14,14 +14,12 @@ const props = defineProps<{
   hiddenDegrees: Set<number>
   stringCount: number
   fretCount: number
-  // Cycle mode — when activeDegrees is non-empty, cycle rendering takes over
-  activeDegrees?: Set<number>   // current chord: full opacity
-  ghostDegrees1?: Set<number>   // next chord: 25% opacity
-  ghostDegrees2?: Set<number>   // chord +2: 12% opacity
-  // Chord degrees (1–7) for slice filtering: only the matching slice is shown
-  activeChordDegree?: number
-  ghostChordDegree1?: number
-  ghostChordDegree2?: number
+  // Cycle mode — presence of activeChordDegree activates per-slice rendering.
+  // Each note's triadDegrees[i] is matched against these chord degrees to determine
+  // which slices to show and at what opacity.  Notes with no matching slices are hidden.
+  activeChordDegree?: number   // current chord (1–7): full opacity
+  ghostChordDegree1?: number   // next chord: 45% opacity
+  ghostChordDegree2?: number   // chord +2: 25% opacity
 }>()
 
 // ── SVG dimensions ────────────────────────────────────────────────────────────
@@ -77,12 +75,16 @@ const notes = computed(() => {
     cx: number
     cy: number
     r: number
-    opacity: number
-    slices: Array<{ path: string; color: string }>
-    labels: Array<{ x: number; y: number; text: string } | null>
+    ringOpacity: number
+    slices: Array<{ path: string; color: string; sliceOpacity: number }>
+    labels: Array<{ x: number; y: number; text: string; opacity: number } | null>
   }> = []
 
-  const cycleModeOn = !!(props.activeDegrees?.size)
+  // Cycle mode is active when activeChordDegree is defined.
+  // Opacity is resolved per slice by matching each slice's triadDegree[i] against
+  // the three chord degrees — a note can show slices from multiple chords simultaneously
+  // (common tones share a fret position and belong to several diatonic triads).
+  const cycleModeOn = props.activeChordDegree !== undefined
 
   for (let si = 0; si < props.stringCount; si++) {
     if (props.hiddenStrings.has(si)) continue
@@ -90,46 +92,53 @@ const notes = computed(() => {
       const note = props.noteMap.get(`${si}-${fret}`)
       if (!note) continue
 
-      // Cycle mode: filter by scale degree, set opacity, identify which chord's slice to show
-      let noteOpacity = 1
-      let showChordDegree: number | undefined
-
-      if (cycleModeOn) {
-        const sd = note.scaleDegree
-        if (props.activeDegrees!.has(sd)) {
-          noteOpacity = 1
-          showChordDegree = props.activeChordDegree
-        } else if (props.ghostDegrees1?.has(sd)) {
-          noteOpacity = 0.45
-          showChordDegree = props.ghostChordDegree1
-        } else if (props.ghostDegrees2?.has(sd)) {
-          noteOpacity = 0.25
-          showChordDegree = props.ghostChordDegree2
-        } else {
-          continue
-        }
-      }
-
       const cx = noteX(si)
       const cy = noteY(fret)
       const r = NOTE_SIZE / 2
 
-      // In cycle mode only the single slice whose triadDegree matches the displayed chord is shown
+      // Build slices with per-slice opacity based on which chord each slice belongs to.
+      // A note whose triadDegrees[i] matches the active chord gets that slice at full
+      // opacity; ghost chords get reduced opacity; unmatched slices go transparent.
+      // In normal mode every slice is rendered at full opacity (controlled by the noteMap).
       const slices = note.triadColors.map((color, i) => {
-        const effectiveColor = (showChordDegree !== undefined && note.triadDegrees[i] !== showChordDegree)
-          ? 'transparent'
-          : color
-        return { path: pieSlicePath(i, cx, cy, r), color: effectiveColor }
+        const path = pieSlicePath(i, cx, cy, r)
+        if (!cycleModeOn) return { path, color, sliceOpacity: 1 }
+        const scd = note.triadDegrees[i]  // chord degree this slice represents
+        if (scd === props.activeChordDegree)  return { path, color, sliceOpacity: 1 }
+        if (scd === props.ghostChordDegree1)  return { path, color, sliceOpacity: 0.45 }
+        if (scd === props.ghostChordDegree2)  return { path, color, sliceOpacity: 0.25 }
+        return { path, color: 'transparent', sliceOpacity: 0 }
       })
+
+      // In cycle mode, skip notes where no slice is visible
+      const ringOpacity = cycleModeOn
+        ? Math.max(...slices.map(s => s.sliceOpacity))
+        : 1
+      if (cycleModeOn && ringOpacity === 0) continue
 
       const labels = note.triadLabels.map((label, i) => {
-        if (showChordDegree !== undefined && note.triadDegrees[i] !== showChordDegree) return null
         if (label === null) return null
-        const pos = labelPosition(i, cx, cy, r)
-        return { x: pos.x, y: pos.y, text: String(label) }
+        if (!cycleModeOn) {
+          const pos = labelPosition(i, cx, cy, r)
+          return { x: pos.x, y: pos.y, text: String(label), opacity: 1 }
+        }
+        const scd = note.triadDegrees[i]
+        if (scd === props.activeChordDegree) {
+          const pos = labelPosition(i, cx, cy, r)
+          return { x: pos.x, y: pos.y, text: String(label), opacity: 1 }
+        }
+        if (scd === props.ghostChordDegree1) {
+          const pos = labelPosition(i, cx, cy, r)
+          return { x: pos.x, y: pos.y, text: String(label), opacity: 0.45 }
+        }
+        if (scd === props.ghostChordDegree2) {
+          const pos = labelPosition(i, cx, cy, r)
+          return { x: pos.x, y: pos.y, text: String(label), opacity: 0.25 }
+        }
+        return null  // invisible slice → no label
       })
 
-      result.push({ key: `${si}-${fret}`, cx, cy, r, opacity: noteOpacity, slices, labels })
+      result.push({ key: `${si}-${fret}`, cx, cy, r, ringOpacity, slices, labels })
     }
   }
   return result
@@ -233,38 +242,73 @@ const DOT_GAP = 5
       </template>
     </g>
 
-    <!-- Note circles -->
-    <g v-for="n in notes" :key="n.key" :opacity="n.opacity">
-      <!-- Pie slices -->
-      <path
-        v-for="(slice, i) in n.slices"
-        :key="i"
-        :d="slice.path"
-        :fill="slice.color"
-      />
-      <!-- White border ring -->
-      <circle
-        :cx="n.cx"
-        :cy="n.cy"
-        :r="n.r - 0.5"
-        fill="none"
-        stroke="white"
-        stroke-width="1"
-      />
-      <!-- Labels: use <template v-for> so v-if can reference loop variable -->
-      <template v-for="(label, i) in n.labels" :key="i">
-        <text
-          v-if="label !== null"
-          :x="label.x"
-          :y="label.y"
-          text-anchor="middle"
-          dominant-baseline="central"
-          font-size="9"
-          font-family="system-ui, sans-serif"
-          font-weight="600"
-          fill="white"
-        >{{ label.text }}</text>
-      </template>
-    </g>
+    <!--
+      Note circles — TransitionGroup fades entire note groups in/out when they
+      enter or leave the visible set.  Each slice, ring, and label also carries
+      its own inline opacity style so CSS transitions animate them individually
+      when the cycle step changes (common tones that stay in the DOM).
+    -->
+    <TransitionGroup tag="g" name="note">
+      <g v-for="n in notes" :key="n.key">
+        <!-- Pie slices — per-slice opacity enables multi-chord common-tone rendering -->
+        <path
+          v-for="(slice, i) in n.slices"
+          :key="i"
+          :d="slice.path"
+          :fill="slice.color"
+          class="note-slice"
+          :style="{ opacity: slice.sliceOpacity }"
+        />
+        <!-- White border ring at the max visible-slice opacity -->
+        <circle
+          :cx="n.cx"
+          :cy="n.cy"
+          :r="n.r - 0.5"
+          fill="none"
+          stroke="white"
+          stroke-width="1"
+          class="note-ring"
+          :style="{ opacity: n.ringOpacity }"
+        />
+        <!-- Labels: use <template v-for> so v-if can reference loop variable -->
+        <template v-for="(label, i) in n.labels" :key="i">
+          <text
+            v-if="label !== null"
+            :x="label.x"
+            :y="label.y"
+            text-anchor="middle"
+            dominant-baseline="central"
+            font-size="9"
+            font-family="system-ui, sans-serif"
+            font-weight="600"
+            fill="white"
+            class="note-label"
+            :style="{ opacity: label.opacity }"
+          >{{ label.text }}</text>
+        </template>
+      </g>
+    </TransitionGroup>
   </svg>
 </template>
+
+<style scoped>
+/* ── Per-element opacity transitions (notes that stay in DOM, opacity changes) ── */
+/* Applied to slices, ring, and labels whenever Vue updates their inline opacity style */
+.note-slice,
+.note-ring,
+.note-label {
+  transition: opacity 0.28s ease-in-out;
+}
+
+/* ── TransitionGroup enter/leave (notes appearing or disappearing entirely) ── */
+/* The group <g> element fades in/out; SVG opacity is multiplicative, so each  */
+/* child's individual opacity is preserved relative to the group level.         */
+.note-enter-active,
+.note-leave-active {
+  transition: opacity 0.28s ease-in-out;
+}
+.note-enter-from,
+.note-leave-to {
+  opacity: 0;
+}
+</style>

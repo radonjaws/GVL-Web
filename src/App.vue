@@ -21,9 +21,6 @@ const {
   noteNamesForKey,
   toggleString,
   toggleDegree,
-  activeCycleScaleDegrees,
-  ghostCycleScaleDegrees1,
-  ghostCycleScaleDegrees2,
   advanceCycleStep,
   retreatCycleStep,
 } = useSettings()
@@ -166,9 +163,6 @@ function degreeButtonStyle(deg: number) {
             :hiddenDegrees="hiddenDegreesSet"
             :stringCount="state.strings"
             :fretCount="state.fretCount"
-            :activeDegrees="state.cycleMode ? activeCycleScaleDegrees : undefined"
-            :ghostDegrees1="state.cycleMode ? ghostCycleScaleDegrees1 : undefined"
-            :ghostDegrees2="state.cycleMode ? ghostCycleScaleDegrees2 : undefined"
             :activeChordDegree="activeChordDegree"
             :ghostChordDegree1="ghostChord1Degree"
             :ghostChordDegree2="ghostChord2Degree"
