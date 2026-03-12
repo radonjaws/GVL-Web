@@ -16,7 +16,8 @@ const props = defineProps<{
   fretCount: number
   // Cycle mode — presence of activeChordDegree activates per-slice rendering.
   // Each note's triadDegrees[i] is matched against these chord degrees to determine
-  // which slices to show and at what opacity.  Notes with no matching slices are hidden.
+  // which slices to show and at what opacity.  Notes with no matching slices are shown
+  // as unfilled ghost circles at 0.25 opacity (passing notes / key context).
   activeChordDegree?: number   // current chord (1–7): full opacity
   ghostChordDegree1?: number   // next chord: 45% opacity
   ghostChordDegree2?: number   // chord +2: 25% opacity
@@ -110,11 +111,10 @@ const notes = computed(() => {
         return { path, color: 'transparent', sliceOpacity: 0 }
       })
 
-      // In cycle mode, skip notes where no slice is visible
-      const ringOpacity = cycleModeOn
-        ? Math.max(...slices.map(s => s.sliceOpacity))
-        : 1
-      if (cycleModeOn && ringOpacity === 0) continue
+      // In cycle mode, notes outside all displayed chords show as unfilled ghost circles
+      // at the same opacity as ghost2 (0.25), consistent with non-cycle chord-disabled display.
+      const maxSliceOpacity = Math.max(...slices.map(s => s.sliceOpacity))
+      const ringOpacity = !cycleModeOn ? 1 : maxSliceOpacity > 0 ? maxSliceOpacity : 0.25
 
       const labels = note.triadLabels.map((label, i) => {
         if (label === null) return null
