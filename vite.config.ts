@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/GVL-Web/',
+  base: '/',
   server: {
     host: '127.0.0.1',
     port: 5173,

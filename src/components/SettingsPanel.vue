@@ -6,6 +6,11 @@ defineEmits<{ close: [] }>()
 
 const { state, ALL_KEYS, TUNINGS } = useSettings()
 
+function toggleCycleMode() {
+  state.cycleMode = !state.cycleMode
+  if (state.cycleMode) state.cycleStep = 0
+}
+
 const MODE_LABELS: Record<ScaleMode, string> = {
   maj: 'Major',
   min: 'Minor',
@@ -56,6 +61,14 @@ const ALL_MODES: ScaleMode[] = ['maj', 'min', 'hMin']
         @click="state.selectedTuningId = t.id"
       >{{ t.name }}</button>
     </div>
+
+    <!-- Cycle Mode -->
+    <div class="section-label">Cycle Mode</div>
+    <button
+      class="cycle-toggle-btn"
+      :class="{ active: state.cycleMode }"
+      @click="toggleCycleMode"
+    >{{ state.cycleMode ? '● On — controls appear below fretboard' : '○ Off' }}</button>
   </div>
 </template>
 
@@ -172,4 +185,24 @@ const ALL_MODES: ScaleMode[] = ['maj', 'min', 'hMin']
   color: #fff;
 }
 .tuning-btn:hover:not(.active) { background: #333; }
+
+/* Cycle toggle */
+.cycle-toggle-btn {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #2a2a2a;
+  color: #ccc;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+.cycle-toggle-btn.active {
+  background: #5a2d91;
+  border-color: #7b3fbf;
+  color: #fff;
+}
+.cycle-toggle-btn:hover:not(.active) { background: #333; }
 </style>

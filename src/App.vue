@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useSettings } from './settings'
 import { generateNoteMap, filterNote } from './fretboardGenerator'
 import { TRIAD_COLORS } from './constants'
+import { CYCLE_SEQUENCES } from './cycleData'
 import {
   NOTE_SIZE, H_SPACING, H_PADDING, FRET_MARKER_WIDTH,
 } from './fretboardGeometry'
@@ -20,6 +21,8 @@ const {
   noteNamesForKey,
   toggleString,
   toggleDegree,
+  advanceCycleStep,
+  retreatCycleStep,
 } = useSettings()
 
 // ── Note map state ────────────────────────────────────────────────────────────
@@ -41,6 +44,49 @@ const filteredNoteMap = computed(() => {
   }
   return out
 })
+
+// In cycle mode use rawNoteMap (cycle props own visibility); otherwise filteredNoteMap
+const displayNoteMap = computed(() =>
+  state.cycleMode ? rawNoteMap.value : filteredNoteMap.value
+)
+
+// ── Cycle chord label helpers ─────────────────────────────────────────────────
+
+const currentDiatonicIdx = computed(() =>
+  CYCLE_SEQUENCES[state.cycleNumber]![state.cycleStep]!
+)
+const nextDiatonicIdx = computed(() =>
+  CYCLE_SEQUENCES[state.cycleNumber]![(state.cycleStep + 1) % 7]!
+)
+
+// Chord degrees (1–7) for each shown chord — passed to FretboardSVG for slice filtering
+const activeChordDegree = computed(() =>
+  state.cycleMode ? currentDiatonicIdx.value + 1 : undefined
+)
+const ghostChord1Degree = computed(() =>
+  state.cycleMode ? nextDiatonicIdx.value + 1 : undefined
+)
+const ghostChord2Degree = computed(() => {
+  if (!state.cycleMode || state.cycleLookahead < 2) return undefined
+  return CYCLE_SEQUENCES[state.cycleNumber]![(state.cycleStep + 2) % 7]! + 1
+})
+
+// ── Auto-play timer ───────────────────────────────────────────────────────────
+
+let autoTimer: ReturnType<typeof setInterval> | null = null
+
+watch(
+  [() => state.autoPlay, () => state.autoPlayBPM, () => state.cycleMode],
+  () => {
+    if (autoTimer) { clearInterval(autoTimer); autoTimer = null }
+    if (state.cycleMode && state.autoPlay) {
+      autoTimer = setInterval(advanceCycleStep, 60_000 / state.autoPlayBPM)
+    }
+  },
+  { immediate: true }
+)
+
+onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
 // ── Menu ──────────────────────────────────────────────────────────────────────
 
@@ -66,6 +112,20 @@ function degreeCircleStyle(degreeIndex: number) {
     width: `${NOTE_SIZE}px`,
     height: `${NOTE_SIZE}px`,
   }
+}
+
+// In cycle mode each degree button fades to match its chord's visibility level
+function degreeButtonOpacity(deg: number): number {
+  if (deg === activeChordDegree.value) return 1
+  if (deg === ghostChord1Degree.value) return 0.5
+  if (state.cycleLookahead >= 2 && deg === ghostChord2Degree.value) return 0.3
+  return 0.08
+}
+
+function degreeButtonStyle(deg: number) {
+  const base = degreeCircleStyle(deg - 1)
+  if (!state.cycleMode) return base
+  return { ...base, opacity: degreeButtonOpacity(deg) }
 }
 </script>
 
@@ -98,30 +158,69 @@ function degreeCircleStyle(degreeIndex: number) {
         <!-- Scrollable fretboard -->
         <div class="fretboard-scroll">
           <FretboardSVG
-            :noteMap="filteredNoteMap"
+            :noteMap="displayNoteMap"
             :hiddenStrings="hiddenStringsSet"
             :hiddenDegrees="hiddenDegreesSet"
             :stringCount="state.strings"
             :fretCount="state.fretCount"
+            :activeChordDegree="activeChordDegree"
+            :ghostChordDegree1="ghostChord1Degree"
+            :ghostChordDegree2="ghostChord2Degree"
           />
         </div>
+
+        <!-- ── Cycle mode controls bar (shown only in cycle mode) ── -->
+        <div v-if="state.cycleMode" class="cycle-bar">
+          <!-- Row 1: prev / chord label / next -->
+          <div class="cycle-nav-row">
+            <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
+            <span class="cycle-chord-label">
+              {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
+            </span>
+            <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
+          </div>
+          <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
+          <div class="cycle-config-row">
+            <select v-model="state.cycleNumber" class="cycle-select" aria-label="Cycle number">
+              <option v-for="n in [2,3,4,5,6,7]" :key="n" :value="n">Cyc. {{ n }}</option>
+            </select>
+            <button
+              class="cycle-btn"
+              :class="{ active: state.autoPlay }"
+              @click="state.autoPlay = !state.autoPlay"
+              aria-label="Toggle auto-play"
+            >{{ state.autoPlay ? '⏸' : '▷' }}</button>
+            <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
+            <span class="bpm-label">♩={{ state.autoPlayBPM }}</span>
+            <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
+            <button
+              class="cycle-btn"
+              @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
+              aria-label="Toggle lookahead"
+            >»{{ state.cycleLookahead }}</button>
+          </div>
+        </div>
+
       </div>
 
-      <!-- ── Right controls: menu + degree toggles, 50px right of fretboard ── -->
+      <!-- ── Right controls: menu + degree toggles, 20px right of fretboard ── -->
       <div class="right-controls">
         <button class="menu-btn" @click="menuOpen = !menuOpen" aria-label="Toggle settings">
           <span>{{ menuOpen ? '✕' : '☰' }}</span>
         </button>
-        <div class="degree-sidebar">
+        <div
+          class="degree-sidebar"
+          :style="{ pointerEvents: state.cycleMode ? 'none' : 'auto' }"
+        >
           <button
             v-for="deg in 7"
             :key="deg"
             class="degree-btn"
-            :class="{ dimmed: hiddenDegreesSet.has(deg) }"
-            :style="degreeCircleStyle(deg - 1)"
+            :class="{ dimmed: !state.cycleMode && hiddenDegreesSet.has(deg) }"
+            :style="degreeButtonStyle(deg)"
             @click="toggleDegree(deg)"
           >
-            <span :class="{ 'label-hidden': hiddenDegreesSet.has(deg) }">
+            <span :class="{ 'label-hidden': !state.cycleMode && hiddenDegreesSet.has(deg) }">
               {{ scaleDegreeLabels[deg - 1] }}
             </span>
           </button>
@@ -222,6 +321,7 @@ function degreeCircleStyle(degreeIndex: number) {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  transition: opacity 0.2s;
 }
 .degree-btn {
   display: flex;
@@ -280,5 +380,82 @@ function degreeCircleStyle(degreeIndex: number) {
 .settings-enter-from,
 .settings-leave-to {
   opacity: 0;
+}
+
+/* ── Cycle bar ────────────────────────────────────────────────────── */
+.cycle-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  background: rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.cycle-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cycle-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cycle-chord-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 90px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.cycle-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 32px;
+  line-height: 1.4;
+}
+.cycle-btn:hover { background: rgba(255,255,255,0.16); }
+.cycle-btn.active {
+  background: rgba(80,200,120,0.25);
+  border-color: rgba(80,200,120,0.55);
+}
+
+.cycle-select {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+.cycle-select option {
+  background: #222;
+  color: #fff;
+}
+
+.bpm-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ccc;
+  min-width: 52px;
+  text-align: center;
 }
 </style>
