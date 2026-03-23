@@ -9,6 +9,7 @@ import {
 } from './fretboardGeometry'
 import FretboardSVG from './components/FretboardSVG.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import CycleSelect from './components/CycleSelect.vue'
 import type { NoteData } from './types'
 
 const {
@@ -181,9 +182,7 @@ function degreeButtonStyle(deg: number) {
           </div>
           <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
           <div class="cycle-config-row">
-            <select v-model="state.cycleNumber" class="cycle-select" aria-label="Cycle number">
-              <option v-for="n in [2,3,4,5,6,7]" :key="n" :value="n">Cyc. {{ n }}</option>
-            </select>
+            <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
             <button
               class="cycle-btn"
               :class="{ active: state.autoPlay }"
@@ -434,21 +433,6 @@ function degreeButtonStyle(deg: number) {
 .cycle-btn.active {
   background: rgba(80,200,120,0.25);
   border-color: rgba(80,200,120,0.55);
-}
-
-.cycle-select {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 6px;
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 5px 6px;
-  cursor: pointer;
-}
-.cycle-select option {
-  background: #222;
-  color: #fff;
 }
 
 .bpm-label {

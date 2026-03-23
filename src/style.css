@@ -27,7 +27,6 @@ button {
 
 /* Thin overlay-style scrollbars across all browsers */
 * {
-  scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
