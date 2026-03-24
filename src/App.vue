@@ -200,39 +200,37 @@ function degreeButtonStyle(deg: number) {
       </div>
     </div>
 
-    <!-- ── Cycle bar: teleported to body so iOS overflow:hidden can't clip it ── -->
-    <Teleport to="body">
-      <Transition name="cycle-bar">
-        <div v-if="state.cycleMode" class="cycle-bar">
-          <!-- Row 1: prev / chord label / next -->
-          <div class="cycle-nav-row">
-            <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
-            <span class="cycle-chord-label">
-              {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
-            </span>
-            <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
-          </div>
-          <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
-          <div class="cycle-config-row">
-            <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
-            <button
-              class="cycle-btn cycle-btn--fixed"
-              :class="{ active: state.autoPlay }"
-              @click="state.autoPlay = !state.autoPlay"
-              aria-label="Toggle auto-play"
-            >{{ state.autoPlay ? '⏸︎' : '▶︎' }}</button>
-            <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
-            <span class="bpm-label">♩×4={{ state.autoPlayBPM }}</span>
-            <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
-            <button
-              class="cycle-btn"
-              @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
-              aria-label="Toggle lookahead"
-            >»{{ state.cycleLookahead }}</button>
-          </div>
+    <!-- ── Cycle bar: flex child so it sits at the bottom of the fixed app-root ── -->
+    <Transition name="cycle-bar">
+      <div v-if="state.cycleMode" class="cycle-bar">
+        <!-- Row 1: prev / chord label / next -->
+        <div class="cycle-nav-row">
+          <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
+          <span class="cycle-chord-label">
+            {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
+          </span>
+          <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
         </div>
-      </Transition>
-    </Teleport>
+        <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
+        <div class="cycle-config-row">
+          <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
+          <button
+            class="cycle-btn cycle-btn--fixed"
+            :class="{ active: state.autoPlay }"
+            @click="state.autoPlay = !state.autoPlay"
+            aria-label="Toggle auto-play"
+          >{{ state.autoPlay ? '⏸︎' : '▶︎' }}</button>
+          <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
+          <span class="bpm-label">♩×4={{ state.autoPlayBPM }}</span>
+          <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
+          <button
+            class="cycle-btn"
+            @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
+            aria-label="Toggle lookahead"
+          >»{{ state.cycleLookahead }}</button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- ── Settings overlay ── -->
     <Transition name="settings">
@@ -249,16 +247,14 @@ function degreeButtonStyle(deg: number) {
 .app-root {
   display: flex;
   flex-direction: column;
-  height: 100svh;
-  width: 100vw;
+  position: fixed;
+  inset: 0;
   background: #111;
   color: #fff;
   font-family: system-ui, -apple-system, sans-serif;
   overflow: hidden;
-  position: relative;
-  /* Push content clear of notch / Dynamic Island */
+  /* Push content clear of notch / Dynamic Island — bottom handled by cycle bar */
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;
@@ -413,11 +409,7 @@ function degreeButtonStyle(deg: number) {
 <style>
 /* ── Cycle bar: fixed to physical screen bottom ───────────────────── */
 .cycle-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
