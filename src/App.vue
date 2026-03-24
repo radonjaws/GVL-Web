@@ -89,6 +89,14 @@ watch(
 
 onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
+// ── True full-screen height (iOS svh excludes home-indicator zone) ─────────────
+function updateAppHeight() {
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)
+}
+updateAppHeight()
+window.addEventListener('resize', updateAppHeight)
+onUnmounted(() => window.removeEventListener('resize', updateAppHeight))
+
 // ── Menu ──────────────────────────────────────────────────────────────────────
 
 const menuOpen = ref(false)
@@ -247,8 +255,11 @@ function degreeButtonStyle(deg: number) {
 .app-root {
   display: flex;
   flex-direction: column;
-  position: fixed;
-  inset: 0;
+  /* --app-height is set by JS to window.innerHeight — the only reliable
+     way to get true full-screen height on iOS PWA (100svh excludes the
+     home-indicator zone on some devices/versions). */
+  height: var(--app-height, 100svh);
+  width: 100vw;
   background: #111;
   color: #fff;
   font-family: system-ui, -apple-system, sans-serif;
@@ -418,6 +429,17 @@ function degreeButtonStyle(deg: number) {
   border-top: 1px solid rgba(255,255,255,0.1);
   box-sizing: border-box;
   font-family: system-ui, -apple-system, sans-serif;
+  position: relative;
+}
+/* Version stripe — swap color each release to confirm latest deploy */
+.cycle-bar::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(3px + env(safe-area-inset-bottom));
+  background: rgb(249,172,45); /* vi gold */
 }
 
 /* Slide up when cycle mode is toggled on */
