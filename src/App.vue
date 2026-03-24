@@ -166,7 +166,7 @@ function degreeButtonStyle(deg: number) {
           </div>
 
           <!-- Scrollable fretboard -->
-          <div class="fretboard-scroll" :class="{ 'fretboard-scroll--cycle': state.cycleMode }">
+          <div class="fretboard-scroll">
             <FretboardSVG
               :noteMap="displayNoteMap"
               :hiddenStrings="hiddenStringsSet"
@@ -329,10 +329,6 @@ function degreeButtonStyle(deg: number) {
   -webkit-overflow-scrolling: touch;
   padding-bottom: 16px;
 }
-/* Extra scroll clearance so content doesn't hide behind the fixed cycle bar */
-.fretboard-scroll--cycle {
-  padding-bottom: 110px;
-}
 
 /* ── Right controls ───────────────────────────────────────────────── */
 /* Inline flex item, 20px gap from fretboard. Whole row is centered. */
@@ -439,7 +435,7 @@ function degreeButtonStyle(deg: number) {
   left: 0;
   right: 0;
   height: calc(3px + env(safe-area-inset-bottom));
-  background: rgb(249,172,45); /* vi gold */
+  background: rgb(249, 45, 45); /* vi gold */
 }
 
 /* Slide up when cycle mode is toggled on */
