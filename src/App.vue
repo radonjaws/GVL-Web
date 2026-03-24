@@ -264,7 +264,7 @@ function degreeButtonStyle(deg: number) {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-  height: 100svh;
+  height: 100%;
   flex-shrink: 0;
 }
 
