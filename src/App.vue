@@ -200,37 +200,39 @@ function degreeButtonStyle(deg: number) {
       </div>
     </div>
 
-    <!-- ── Cycle bar: full-width, pinned to bottom ── -->
-    <Transition name="cycle-bar">
-      <div v-if="state.cycleMode" class="cycle-bar">
-        <!-- Row 1: prev / chord label / next -->
-        <div class="cycle-nav-row">
-          <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
-          <span class="cycle-chord-label">
-            {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
-          </span>
-          <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
+    <!-- ── Cycle bar: teleported to body so iOS overflow:hidden can't clip it ── -->
+    <Teleport to="body">
+      <Transition name="cycle-bar">
+        <div v-if="state.cycleMode" class="cycle-bar">
+          <!-- Row 1: prev / chord label / next -->
+          <div class="cycle-nav-row">
+            <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
+            <span class="cycle-chord-label">
+              {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
+            </span>
+            <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
+          </div>
+          <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
+          <div class="cycle-config-row">
+            <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
+            <button
+              class="cycle-btn cycle-btn--fixed"
+              :class="{ active: state.autoPlay }"
+              @click="state.autoPlay = !state.autoPlay"
+              aria-label="Toggle auto-play"
+            >{{ state.autoPlay ? '⏸︎' : '▶︎' }}</button>
+            <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
+            <span class="bpm-label">♩×4={{ state.autoPlayBPM }}</span>
+            <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
+            <button
+              class="cycle-btn"
+              @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
+              aria-label="Toggle lookahead"
+            >»{{ state.cycleLookahead }}</button>
+          </div>
         </div>
-        <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
-        <div class="cycle-config-row">
-          <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
-          <button
-            class="cycle-btn cycle-btn--fixed"
-            :class="{ active: state.autoPlay }"
-            @click="state.autoPlay = !state.autoPlay"
-            aria-label="Toggle auto-play"
-          >{{ state.autoPlay ? '⏸︎' : '▶︎' }}</button>
-          <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
-          <span class="bpm-label">♩×4={{ state.autoPlayBPM }}</span>
-          <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
-          <button
-            class="cycle-btn"
-            @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
-            aria-label="Toggle lookahead"
-          >»{{ state.cycleLookahead }}</button>
-        </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
 
     <!-- ── Settings overlay ── -->
     <Transition name="settings">
@@ -404,6 +406,11 @@ function degreeButtonStyle(deg: number) {
   opacity: 0;
 }
 
+/* (cycle bar styles are global — see <style> block below) */
+</style>
+
+<!-- Non-scoped: cycle bar is teleported to <body> so scoped attrs won't reach it -->
+<style>
 /* ── Cycle bar: fixed to physical screen bottom ───────────────────── */
 .cycle-bar {
   position: fixed;
@@ -418,6 +425,7 @@ function degreeButtonStyle(deg: number) {
   background: #1a1a1a;
   border-top: 1px solid rgba(255,255,255,0.1);
   box-sizing: border-box;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
 /* Slide up when cycle mode is toggled on */
@@ -456,15 +464,25 @@ function degreeButtonStyle(deg: number) {
   color: #fff;
   font-size: 0.8rem;
   font-weight: 600;
+  font-family: system-ui, -apple-system, sans-serif;
   padding: 5px 10px;
   cursor: pointer;
   flex-shrink: 0;
   min-width: 32px;
   line-height: 1.4;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 .cycle-btn:hover { background: rgba(255,255,255,0.16); }
-/* Fixed width so play ▶ and pause ⏸ don't shift neighbours */
-.cycle-btn--fixed { width: 36px; padding-left: 0; padding-right: 0; justify-content: center; }
+/* Fixed width so play/pause don't shift neighbours */
+.cycle-btn--fixed {
+  width: 36px;
+  padding-left: 0;
+  padding-right: 0;
+  display: flex;
+  justify-content: center;
+}
 .cycle-btn.active {
   background: rgba(80,200,120,0.25);
   border-color: rgba(80,200,120,0.55);
