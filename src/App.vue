@@ -133,100 +133,104 @@ function degreeButtonStyle(deg: number) {
 <template>
   <div class="app-root">
 
-    <!-- ── Center wrapper: sized to fretboard content, centered on screen ── -->
-    <div class="center-wrapper">
+    <!-- ── Main area: fills all space above the cycle bar ── -->
+    <div class="main-area">
+      <div class="center-wrapper">
 
-      <!-- Fretboard column -->
-      <div class="fretboard-column">
+        <!-- Fretboard column -->
+        <div class="fretboard-column">
 
-        <!-- String name toggles -->
-        <div
-          class="string-toggles"
-          :style="{ paddingLeft: togglePaddingLeft, gap: toggleGap }"
-        >
-          <button
-            v-for="si in state.strings"
-            :key="si - 1"
-            class="string-btn"
-            :class="{ hidden: hiddenStringsSet.has(si - 1) }"
-            :style="{ width: toggleSize, height: toggleSize }"
-            @click="toggleString(si - 1)"
+          <!-- String name toggles -->
+          <div
+            class="string-toggles"
+            :style="{ paddingLeft: togglePaddingLeft, gap: toggleGap }"
           >
-            {{ noteNamesForKey[(tuning.openStrings[si - 1] ?? 0) % 12] }}
-          </button>
-        </div>
-
-        <!-- Scrollable fretboard -->
-        <div class="fretboard-scroll">
-          <FretboardSVG
-            :noteMap="displayNoteMap"
-            :hiddenStrings="hiddenStringsSet"
-            :hiddenDegrees="hiddenDegreesSet"
-            :stringCount="state.strings"
-            :fretCount="state.fretCount"
-            :activeChordDegree="activeChordDegree"
-            :ghostChordDegree1="ghostChord1Degree"
-            :ghostChordDegree2="ghostChord2Degree"
-          />
-        </div>
-
-        <!-- ── Cycle mode controls bar (shown only in cycle mode) ── -->
-        <div v-if="state.cycleMode" class="cycle-bar">
-          <!-- Row 1: prev / chord label / next -->
-          <div class="cycle-nav-row">
-            <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
-            <span class="cycle-chord-label">
-              {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
-            </span>
-            <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
+            <button
+              v-for="si in state.strings"
+              :key="si - 1"
+              class="string-btn"
+              :class="{ hidden: hiddenStringsSet.has(si - 1) }"
+              :style="{ width: toggleSize, height: toggleSize }"
+              @click="toggleString(si - 1)"
+            >
+              {{ noteNamesForKey[(tuning.openStrings[si - 1] ?? 0) % 12] }}
+            </button>
           </div>
-          <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
-          <div class="cycle-config-row">
-            <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
+
+          <!-- Scrollable fretboard -->
+          <div class="fretboard-scroll">
+            <FretboardSVG
+              :noteMap="displayNoteMap"
+              :hiddenStrings="hiddenStringsSet"
+              :hiddenDegrees="hiddenDegreesSet"
+              :stringCount="state.strings"
+              :fretCount="state.fretCount"
+              :activeChordDegree="activeChordDegree"
+              :ghostChordDegree1="ghostChord1Degree"
+              :ghostChordDegree2="ghostChord2Degree"
+            />
+          </div>
+
+        </div>
+
+        <!-- ── Right controls: menu + degree toggles ── -->
+        <div class="right-controls">
+          <button class="menu-btn" @click="menuOpen = !menuOpen" aria-label="Toggle settings">
+            <span>{{ menuOpen ? '✕' : '☰' }}</span>
+          </button>
+          <div
+            class="degree-sidebar"
+            :style="{ pointerEvents: state.cycleMode ? 'none' : 'auto' }"
+          >
             <button
-              class="cycle-btn"
-              :class="{ active: state.autoPlay }"
-              @click="state.autoPlay = !state.autoPlay"
-              aria-label="Toggle auto-play"
-            >{{ state.autoPlay ? '⏸' : '▷' }}</button>
-            <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
-            <span class="bpm-label">♩={{ state.autoPlayBPM }}</span>
-            <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
-            <button
-              class="cycle-btn"
-              @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
-              aria-label="Toggle lookahead"
-            >»{{ state.cycleLookahead }}</button>
+              v-for="deg in 7"
+              :key="deg"
+              class="degree-btn"
+              :class="{ dimmed: !state.cycleMode && hiddenDegreesSet.has(deg) }"
+              :style="degreeButtonStyle(deg)"
+              @click="toggleDegree(deg)"
+            >
+              <span :class="{ 'label-hidden': !state.cycleMode && hiddenDegreesSet.has(deg) }">
+                {{ scaleDegreeLabels[deg - 1] }}
+              </span>
+            </button>
           </div>
         </div>
 
       </div>
-
-      <!-- ── Right controls: menu + degree toggles, 20px right of fretboard ── -->
-      <div class="right-controls">
-        <button class="menu-btn" @click="menuOpen = !menuOpen" aria-label="Toggle settings">
-          <span>{{ menuOpen ? '✕' : '☰' }}</span>
-        </button>
-        <div
-          class="degree-sidebar"
-          :style="{ pointerEvents: state.cycleMode ? 'none' : 'auto' }"
-        >
-          <button
-            v-for="deg in 7"
-            :key="deg"
-            class="degree-btn"
-            :class="{ dimmed: !state.cycleMode && hiddenDegreesSet.has(deg) }"
-            :style="degreeButtonStyle(deg)"
-            @click="toggleDegree(deg)"
-          >
-            <span :class="{ 'label-hidden': !state.cycleMode && hiddenDegreesSet.has(deg) }">
-              {{ scaleDegreeLabels[deg - 1] }}
-            </span>
-          </button>
-        </div>
-      </div>
-
     </div>
+
+    <!-- ── Cycle bar: full-width, pinned to bottom ── -->
+    <Transition name="cycle-bar">
+      <div v-if="state.cycleMode" class="cycle-bar">
+        <!-- Row 1: prev / chord label / next -->
+        <div class="cycle-nav-row">
+          <button class="cycle-btn" @click="retreatCycleStep" aria-label="Previous chord">◀</button>
+          <span class="cycle-chord-label">
+            {{ scaleDegreeLabels[currentDiatonicIdx] }} → {{ scaleDegreeLabels[nextDiatonicIdx] }}
+          </span>
+          <button class="cycle-btn" @click="advanceCycleStep" aria-label="Next chord">▶</button>
+        </div>
+        <!-- Row 2: cycle selector, auto-play, BPM, lookahead -->
+        <div class="cycle-config-row">
+          <CycleSelect v-model="state.cycleNumber" :options="[2,3,4,5,6,7]" />
+          <button
+            class="cycle-btn cycle-btn--fixed"
+            :class="{ active: state.autoPlay }"
+            @click="state.autoPlay = !state.autoPlay"
+            aria-label="Toggle auto-play"
+          >{{ state.autoPlay ? '⏸' : '▶' }}</button>
+          <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
+          <span class="bpm-label">♩={{ state.autoPlayBPM }}</span>
+          <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
+          <button
+            class="cycle-btn"
+            @click="state.cycleLookahead = state.cycleLookahead === 1 ? 2 : 1"
+            aria-label="Toggle lookahead"
+          >»{{ state.cycleLookahead }}</button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- ── Settings overlay ── -->
     <Transition name="settings">
@@ -242,7 +246,7 @@ function degreeButtonStyle(deg: number) {
 /* ── Root ─────────────────────────────────────────────────────────── */
 .app-root {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   height: 100svh;
   width: 100vw;
   background: #111;
@@ -256,6 +260,15 @@ function degreeButtonStyle(deg: number) {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;
+}
+
+/* ── Main area: takes all space above cycle bar ───────────────────── */
+.main-area {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
 }
 
 /* ── Center wrapper ───────────────────────────────────────────────── */
@@ -387,16 +400,23 @@ function degreeButtonStyle(deg: number) {
   opacity: 0;
 }
 
-/* ── Cycle bar ────────────────────────────────────────────────────── */
+/* ── Cycle bar: full-width bottom panel ───────────────────────────── */
 .cycle-bar {
   flex-shrink: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 12px 12px;
+  padding: 8px 16px 12px;
   background: rgba(255,255,255,0.04);
   border-top: 1px solid rgba(255,255,255,0.1);
+  box-sizing: border-box;
 }
+
+/* Slide up when cycle mode is toggled on */
+.cycle-bar-enter-active { transition: transform 0.2s ease, opacity 0.2s ease; }
+.cycle-bar-leave-active { transition: transform 0.15s ease, opacity 0.15s ease; }
+.cycle-bar-enter-from, .cycle-bar-leave-to { transform: translateY(100%); opacity: 0; }
 
 .cycle-nav-row {
   display: flex;
@@ -436,6 +456,8 @@ function degreeButtonStyle(deg: number) {
   line-height: 1.4;
 }
 .cycle-btn:hover { background: rgba(255,255,255,0.16); }
+/* Fixed width so play ▶ and pause ⏸ don't shift neighbours */
+.cycle-btn--fixed { width: 36px; padding-left: 0; padding-right: 0; justify-content: center; }
 .cycle-btn.active {
   background: rgba(80,200,120,0.25);
   border-color: rgba(80,200,120,0.55);
