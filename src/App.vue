@@ -158,7 +158,7 @@ function degreeButtonStyle(deg: number) {
           </div>
 
           <!-- Scrollable fretboard -->
-          <div class="fretboard-scroll">
+          <div class="fretboard-scroll" :class="{ 'fretboard-scroll--cycle': state.cycleMode }">
             <FretboardSVG
               :noteMap="displayNoteMap"
               :hiddenStrings="hiddenStringsSet"
@@ -254,8 +254,9 @@ function degreeButtonStyle(deg: number) {
   font-family: system-ui, -apple-system, sans-serif;
   overflow: hidden;
   position: relative;
-  /* Push content clear of notch / Dynamic Island — bottom handled by cycle bar */
+  /* Push content clear of notch / Dynamic Island */
   padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;
@@ -318,6 +319,10 @@ function degreeButtonStyle(deg: number) {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 16px;
+}
+/* Extra scroll clearance so content doesn't hide behind the fixed cycle bar */
+.fretboard-scroll--cycle {
+  padding-bottom: 110px;
 }
 
 /* ── Right controls ───────────────────────────────────────────────── */
@@ -399,15 +404,18 @@ function degreeButtonStyle(deg: number) {
   opacity: 0;
 }
 
-/* ── Cycle bar: full-width bottom panel ───────────────────────────── */
+/* ── Cycle bar: fixed to physical screen bottom ───────────────────── */
 .cycle-bar {
-  flex-shrink: 0;
-  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(255,255,255,0.04);
+  background: #1a1a1a;
   border-top: 1px solid rgba(255,255,255,0.1);
   box-sizing: border-box;
 }
