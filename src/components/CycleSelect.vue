@@ -31,7 +31,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
 <template>
   <div class="cs-root" ref="root">
     <button class="cs-btn" :class="{ open }" @click="open = !open" aria-haspopup="listbox" :aria-expanded="open">
-      Cyc. {{ modelValue }}<span class="cs-arrow">▾</span>
+      Cyc. {{ modelValue }} {{ modelValue <= 4 ? '↑' : '↓' }}<span class="cs-arrow">▾</span>
     </button>
     <Transition name="cs-drop">
       <ul v-if="open" class="cs-menu" role="listbox">
@@ -44,7 +44,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onClickOutside))
           :aria-selected="opt === modelValue"
           @mousedown.prevent="select(opt)"
         >
-          Cyc. {{ opt }}
+          Cyc. {{ opt }} {{ opt <= 4 ? '↑' : '↓' }}
         </li>
       </ul>
     </Transition>
