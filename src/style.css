@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+/* Expose safe-area values to JS via CSS custom properties */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
 html, body {
   margin: 0;
   padding: 0;

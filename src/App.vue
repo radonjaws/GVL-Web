@@ -89,9 +89,14 @@ watch(
 
 onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
-// ── True full-screen height (iOS svh excludes home-indicator zone) ─────────────
+// ── True full-screen height ────────────────────────────────────────────────────
+// On iOS PWA, window.innerHeight excludes env(safe-area-inset-top) — the
+// Dynamic Island / notch area — so we read --sat (bridged via CSS) and add it
+// back to get the true physical screen height.
 function updateAppHeight() {
-  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)
+  const satStr = getComputedStyle(document.documentElement).getPropertyValue('--sat').trim()
+  const sat = parseFloat(satStr) || 0
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight + sat}px`)
 }
 updateAppHeight()
 window.addEventListener('resize', updateAppHeight)
@@ -137,26 +142,6 @@ function degreeButtonStyle(deg: number) {
   return { ...base, opacity: degreeButtonOpacity(deg) }
 }
 
-// ── Debug heights (remove after iOS gap is diagnosed) ─────────────────────────
-import { ref as _ref, onMounted as _onMounted } from 'vue'
-const debugInfo = _ref('')
-_onMounted(() => {
-  setTimeout(() => {
-    const g = (sel: string) => {
-      const el = document.querySelector(sel)
-      return el ? Math.round((el as HTMLElement).getBoundingClientRect().height) : '?'
-    }
-    debugInfo.value = [
-      `win=${window.innerHeight}`,
-      `app=${g('.app-root')}`,
-      `main=${g('.main-area')}`,
-      `cyc=${g('.cycle-bar')}`,
-      `scr=${g('.fretboard-scroll')}`,
-      `svg=${g('.fretboard-scroll svg')}`,
-      `safeB=${getComputedStyle(document.documentElement).getPropertyValue('env(safe-area-inset-bottom)') || '?'}`,
-    ].join(' | ')
-  }, 500)
-})
 </script>
 
 <template>
@@ -260,9 +245,6 @@ _onMounted(() => {
         </div>
       </div>
     </Transition>
-
-    <!-- ── Debug overlay (temporary) ── -->
-    <div v-if="debugInfo" style="position:fixed;top:env(safe-area-inset-top);left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;padding:4px 8px;z-index:999;word-break:break-all;pointer-events:none;">{{ debugInfo }}</div>
 
     <!-- ── Settings overlay ── -->
     <Transition name="settings">
@@ -460,7 +442,7 @@ _onMounted(() => {
   left: 0;
   right: 0;
   height: calc(3px + env(safe-area-inset-bottom));
-  background: rgb(30, 100, 220); /* vi blue */
+  background: rgb(140, 60, 200); /* i purple */
 }
 
 /* Slide up when cycle mode is toggled on */
