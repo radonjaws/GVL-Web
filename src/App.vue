@@ -295,6 +295,7 @@ function degreeButtonStyle(deg: number) {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -435,7 +436,7 @@ function degreeButtonStyle(deg: number) {
   left: 0;
   right: 0;
   height: calc(3px + env(safe-area-inset-bottom));
-  background: rgb(249, 45, 45); /* vi gold */
+  background: rgb(0, 148, 68); /* V green */
 }
 
 /* Slide up when cycle mode is toggled on */
