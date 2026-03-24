@@ -81,7 +81,7 @@ watch(
   () => {
     if (autoTimer) { clearInterval(autoTimer); autoTimer = null }
     if (state.cycleMode && state.autoPlay) {
-      autoTimer = setInterval(advanceCycleStep, 60_000 / state.autoPlayBPM)
+      autoTimer = setInterval(advanceCycleStep, 4 * 60_000 / state.autoPlayBPM)
     }
   },
   { immediate: true }
@@ -219,9 +219,9 @@ function degreeButtonStyle(deg: number) {
             :class="{ active: state.autoPlay }"
             @click="state.autoPlay = !state.autoPlay"
             aria-label="Toggle auto-play"
-          >{{ state.autoPlay ? '⏸' : '▶' }}</button>
+          >{{ state.autoPlay ? '⏸︎' : '▶︎' }}</button>
           <button class="cycle-btn" @click="state.autoPlayBPM = Math.max(20, state.autoPlayBPM - 5)" aria-label="Decrease BPM">−</button>
-          <span class="bpm-label">♩={{ state.autoPlayBPM }}</span>
+          <span class="bpm-label">♩×4={{ state.autoPlayBPM }}</span>
           <button class="cycle-btn" @click="state.autoPlayBPM = Math.min(240, state.autoPlayBPM + 5)" aria-label="Increase BPM">+</button>
           <button
             class="cycle-btn"
@@ -254,9 +254,8 @@ function degreeButtonStyle(deg: number) {
   font-family: system-ui, -apple-system, sans-serif;
   overflow: hidden;
   position: relative;
-  /* Push content clear of notch / Dynamic Island / home indicator */
+  /* Push content clear of notch / Dynamic Island — bottom handled by cycle bar */
   padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   box-sizing: border-box;
@@ -407,7 +406,7 @@ function degreeButtonStyle(deg: number) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 16px 12px;
+  padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
   background: rgba(255,255,255,0.04);
   border-top: 1px solid rgba(255,255,255,0.1);
   box-sizing: border-box;
