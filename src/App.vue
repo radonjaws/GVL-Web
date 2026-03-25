@@ -433,15 +433,15 @@ function degreeButtonStyle(deg: number) {
   font-family: system-ui, -apple-system, sans-serif;
   position: relative;
 }
-/* Version stripe — swap color each release to confirm latest deploy */
+/* Bottom edge — mirrors the top border */
 .cycle-bar::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: rgb(60, 120, 220); /* iv blue */
+  height: 1px;
+  background: rgba(255,255,255,0.1);
 }
 
 /* Slide up when cycle mode is toggled on */

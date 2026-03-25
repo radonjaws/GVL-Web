@@ -18,9 +18,10 @@ export function svgWidth(stringCount: number): number {
 }
 
 export function svgHeight(fretCount: number): number {
-  // fretCount rows of notes (fret 0 = open string above nut, frets 1..fretCount between wires)
-  // We draw fretCount+1 fret lines (0 = nut, fretCount = last wire)
-  return (fretCount + 1) * STEP_Y + V_PADDING_TOP + V_PADDING_BOTTOM
+  // Derived directly from fretLineY: last wire is at V_PADDING_TOP + NOTE_SIZE/2 + fretCount*STEP_Y,
+  // then add V_PADDING_BOTTOM below it.  The old formula used (fretCount+1)*STEP_Y which
+  // over-allocated by STEP_Y - NOTE_SIZE/2 = 36 px at the bottom.
+  return V_PADDING_TOP + NOTE_SIZE / 2 + fretCount * STEP_Y + V_PADDING_BOTTOM
 }
 
 // ── Position helpers ──────────────────────────────────────────────────────────
