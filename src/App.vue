@@ -90,12 +90,17 @@ watch(
 onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
 // ── True full-screen height ────────────────────────────────────────────────────
-// On iOS PWA, window.innerHeight excludes env(safe-area-inset-top) — the
-// Dynamic Island / notch area — so it's ~59px short of the physical screen.
-// document.documentElement.clientHeight gives the full CSS layout viewport
-// (932px on iPhone 15 Pro Max), so we take whichever value is larger.
+// On iOS PWA (navigator.standalone === true), window.innerHeight excludes the
+// status-bar / Dynamic Island area — the same value as env(safe-area-inset-top).
+// window.screen.height always equals the full physical screen height in CSS px
+// (932 on iPhone 15 Pro Max), so we use it exclusively in standalone mode.
+// In normal browser contexts we fall back to the larger of innerHeight /
+// clientHeight to handle browser-chrome quirks on other platforms.
 function updateAppHeight() {
-  const h = Math.max(window.innerHeight, document.documentElement.clientHeight)
+  const isIosPwa = !!(navigator as any).standalone
+  const h = isIosPwa
+    ? window.screen.height
+    : Math.max(window.innerHeight, document.documentElement.clientHeight)
   document.documentElement.style.setProperty('--app-height', `${h}px`)
 }
 updateAppHeight()
@@ -442,7 +447,7 @@ function degreeButtonStyle(deg: number) {
   left: 0;
   right: 0;
   height: calc(3px + env(safe-area-inset-bottom));
-  background: rgb(220, 130, 20); /* ii orange */
+  background: rgb(60, 180, 100); /* iii green */
 }
 
 /* Slide up when cycle mode is toggled on */
