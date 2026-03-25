@@ -89,19 +89,13 @@ watch(
 
 onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
-// ── True full-screen height ────────────────────────────────────────────────────
-// On iOS PWA (navigator.standalone === true), window.innerHeight excludes the
-// status-bar / Dynamic Island area — the same value as env(safe-area-inset-top).
-// window.screen.height always equals the full physical screen height in CSS px
-// (932 on iPhone 15 Pro Max), so we use it exclusively in standalone mode.
-// In normal browser contexts we fall back to the larger of innerHeight /
-// clientHeight to handle browser-chrome quirks on other platforms.
+// ── App height ─────────────────────────────────────────────────────────────────
+// window.innerHeight is the reliable render boundary on all platforms including
+// iOS PWA. We treat it as the definitive bottom edge rather than trying to
+// extend into OS chrome areas (Dynamic Island, home indicator) that may or may
+// not be reachable depending on iOS version / display mode.
 function updateAppHeight() {
-  const isIosPwa = !!(navigator as any).standalone
-  const h = isIosPwa
-    ? window.screen.height
-    : Math.max(window.innerHeight, document.documentElement.clientHeight)
-  document.documentElement.style.setProperty('--app-height', `${h}px`)
+  document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`)
 }
 updateAppHeight()
 window.addEventListener('resize', updateAppHeight)
@@ -432,7 +426,7 @@ function degreeButtonStyle(deg: number) {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
+  padding: 8px 16px 12px;
   background: #1a1a1a;
   border-top: 1px solid rgba(255,255,255,0.1);
   box-sizing: border-box;
@@ -446,8 +440,8 @@ function degreeButtonStyle(deg: number) {
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(3px + env(safe-area-inset-bottom));
-  background: rgb(60, 180, 100); /* iii green */
+  height: 3px;
+  background: rgb(60, 120, 220); /* iv blue */
 }
 
 /* Slide up when cycle mode is toggled on */
